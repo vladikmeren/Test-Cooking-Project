@@ -154,7 +154,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
             <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: 22, fontWeight: 600 }}>
               {isEdit ? t.editRecipe : t.addModalTitle}
             </h2>
-            <button className="btn btn-ghost" onClick={onClose} style={{ padding: 6 }}><X size={20} /></button>
+            <button type="button" className="btn btn-ghost" onClick={onClose} style={{ padding: 6 }}><X size={20} /></button>
           </div>
 
           {!isEdit && (
@@ -165,7 +165,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
               {[{ id: 'link', icon: <Link2 size={14}/>, label: t.tabLink },
                 { id: 'manual', icon: <PenLine size={14}/>, label: t.tabManual }]
                 .map(({ id, icon, label }) => (
-                <button key={id} onClick={() => setTab(id)} style={{
+                <button type="button" key={id} onClick={() => setTab(id)} style={{
                   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                   padding: '9px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
                   fontFamily: 'DM Sans, sans-serif', fontSize: 14, fontWeight: 500,
@@ -204,7 +204,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
                 <input className="input" value={urlName} onChange={e => setUrlName(e.target.value)}
                   placeholder={t.namePlaceholder} />
               </div>
-              <button className="btn btn-primary" onClick={handleExtract}
+              <button type="button" className="btn btn-primary" onClick={handleExtract}
                 disabled={loading || !url.trim()}
                 style={{ justifyContent: 'center', padding: '13px', fontSize: 15, opacity: (!url.trim() || loading) ? 0.6 : 1 }}>
                 {loading ? statusMsg || t.extracting : t.extractBtn}
@@ -238,7 +238,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
                 <label style={L}>{t.photoLabel}</label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
-                  <button className="btn btn-secondary" onClick={() => fileRef.current?.click()}
+                  <button type="button" className="btn btn-secondary" onClick={() => fileRef.current?.click()}
                     disabled={uploading} style={{ fontSize: 13, gap: 6, flexShrink: 0 }}>
                     <Upload size={14} /> {uploading ? 'Загружаю...' : t.photoUpload}
                   </button>
@@ -249,7 +249,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
                   <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
                     <img src={form.thumbnail} alt="" style={{ height: 80, borderRadius: 8, objectFit: 'cover' }}
                       onError={e => { e.target.style.display = 'none' }} />
-                    <button onClick={() => setF('thumbnail', '')} style={{
+                    <button type="button" onClick={() => setF('thumbnail', '')} style={{
                       position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)',
                       border: 'none', borderRadius: '50%', color: 'white', width: 20, height: 20,
                       cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -260,18 +260,37 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
 
               {/* Categories multi-select */}
               <div>
-                <label style={L}>{t.categoryLabel}</label>
+                <label style={L}>
+                  {t.categoryLabel}
+                  {form.categories.length > 0 && (
+                    <span style={{ marginLeft: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'none', fontSize: 11 }}>
+                      ✓ {form.categories.length} выбр.
+                    </span>
+                  )}
+                </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {CATEGORIES.map(({ key, emoji }) => {
                     const active = form.categories.includes(key)
                     return (
-                      <button key={key} onClick={() => toggleCategory(key)} style={{
-                        padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                        background: active ? 'var(--accent-light)' : 'var(--bg-2)',
-                        color: active ? 'var(--accent)' : 'var(--text-2)',
-                        fontSize: 12, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-                        fontWeight: active ? 600 : 400,
-                      }}>
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleCategory(key) }}
+                        style={{
+                          padding: '6px 13px', borderRadius: 20,
+                          border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                          background: active ? 'var(--accent-light)' : 'var(--bg-2)',
+                          color: active ? 'var(--accent)' : 'var(--text-2)',
+                          fontSize: 13, cursor: 'pointer',
+                          fontFamily: 'DM Sans, sans-serif',
+                          fontWeight: active ? 700 : 400,
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          transition: 'all 0.12s',
+                          outline: active ? '2px solid var(--accent-light)' : 'none',
+                          outlineOffset: '1px',
+                        }}
+                      >
+                        {active && <span style={{ fontSize: 11, lineHeight: 1 }}>✓</span>}
                         {emoji} {t[`cat_${key}`]}
                       </button>
                     )
@@ -293,7 +312,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
                   <label style={L}>{t.difficultyLabel}</label>
                   <div style={{ display: 'flex', gap: 4 }}>
                     {['easy','medium','hard'].map(d => (
-                      <button key={d} onClick={() => setF('difficulty', d)} style={{
+                      <button type="button" key={d} onClick={() => setF('difficulty', d)} style={{
                         flex: 1, padding: '8px 4px',
                         border: `1.5px solid ${form.difficulty === d ? 'var(--accent)' : 'var(--border)'}`,
                         background: form.difficulty === d ? 'var(--accent-light)' : 'var(--bg-2)',
@@ -346,7 +365,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
                   placeholder="https://..." />
               </div>
 
-              <button className="btn btn-primary" onClick={handleSave} disabled={loading}
+              <button type="button" className="btn btn-primary" onClick={handleSave} disabled={loading}
                 style={{ justifyContent: 'center', padding: '13px', fontSize: 15, opacity: loading ? 0.6 : 1 }}>
                 {loading ? '...' : isEdit ? t.saveChanges : t.saveBtn}
               </button>
