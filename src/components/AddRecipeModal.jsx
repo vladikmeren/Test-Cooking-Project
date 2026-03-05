@@ -258,41 +258,70 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
                 )}
               </div>
 
-              {/* Categories multi-select */}
+              {/* Categories — checkbox list, max 5 */}
               <div>
                 <label style={L}>
                   {t.categoryLabel}
-                  {form.categories.length > 0 && (
-                    <span style={{ marginLeft: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'none', fontSize: 11 }}>
-                      ✓ {form.categories.length} выбр.
+                  <span style={{ marginLeft: 8, color: 'var(--text-3)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>
+                    {form.categories.length}/5
+                  </span>
+                  {form.categories.length >= 5 && (
+                    <span style={{ marginLeft: 6, color: '#c87c20', fontWeight: 600, textTransform: 'none', fontSize: 11 }}>
+                      макс.
                     </span>
                   )}
                 </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {CATEGORIES.map(({ key, emoji }) => {
+                <div style={{
+                  border: '1px solid var(--border)', borderRadius: 10,
+                  overflow: 'hidden', maxHeight: 240, overflowY: 'auto',
+                }}>
+                  {CATEGORIES.map(({ key, emoji }, idx) => {
                     const active = form.categories.includes(key)
+                    const disabled = !active && form.categories.length >= 5
                     return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleCategory(key) }}
-                        style={{
-                          padding: '6px 13px', borderRadius: 20,
-                          border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                          background: active ? 'var(--accent-light)' : 'var(--bg-2)',
-                          color: active ? 'var(--accent)' : 'var(--text-2)',
-                          fontSize: 13, cursor: 'pointer',
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontWeight: active ? 700 : 400,
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          transition: 'all 0.12s',
-                          outline: active ? '2px solid var(--accent-light)' : 'none',
-                          outlineOffset: '1px',
-                        }}
+                      <label key={key} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '9px 14px',
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        background: active ? 'var(--accent-light)' : 'transparent',
+                        borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
+                        opacity: disabled ? 0.4 : 1,
+                        transition: 'background 0.1s',
+                        userSelect: 'none',
+                      }}
+                      onMouseEnter={e => { if (!disabled && !active) e.currentTarget.style.background = 'var(--bg-2)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = active ? 'var(--accent-light)' : 'transparent' }}
                       >
-                        {active && <span style={{ fontSize: 11, lineHeight: 1 }}>✓</span>}
-                        {emoji} {t[`cat_${key}`]}
-                      </button>
+                        {/* Custom checkbox */}
+                        <div
+                          onClick={(e) => { e.preventDefault(); if (!disabled) toggleCategory(key) }}
+                          style={{
+                            width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                            border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                            background: active ? 'var(--accent)' : 'transparent',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.12s',
+                          }}
+                        >
+                          {active && (
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                              <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 15 }}>{emoji}</span>
+                        <span style={{
+                          fontFamily: 'DM Sans, sans-serif', fontSize: 14,
+                          color: active ? 'var(--accent)' : 'var(--text)',
+                          fontWeight: active ? 600 : 400,
+                          flex: 1,
+                        }}>
+                          {t[`cat_${key}`]}
+                        </span>
+                        {active && (
+                          <span style={{ fontSize: 11, color: 'var(--accent)', opacity: 0.7 }}>✓</span>
+                        )}
+                      </label>
                     )
                   })}
                 </div>
