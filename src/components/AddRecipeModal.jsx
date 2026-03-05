@@ -262,7 +262,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
               <div>
                 <label style={L}>
                   {t.categoryLabel}
-                  <span style={{ marginLeft: 8, color: 'var(--text-3)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>
+                  <span style={{ marginLeft: 8, color: form.categories.length > 0 ? 'var(--accent)' : 'var(--text-3)', fontWeight: 400, textTransform: 'none', fontSize: 11 }}>
                     {form.categories.length}/5
                   </span>
                   {form.categories.length >= 5 && (
@@ -279,49 +279,45 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
                     const active = form.categories.includes(key)
                     const disabled = !active && form.categories.length >= 5
                     return (
-                      <label key={key} style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '9px 14px',
-                        cursor: disabled ? 'not-allowed' : 'pointer',
-                        background: active ? 'var(--accent-light)' : 'transparent',
-                        borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
-                        opacity: disabled ? 0.4 : 1,
-                        transition: 'background 0.1s',
-                        userSelect: 'none',
-                      }}
-                      onMouseEnter={e => { if (!disabled && !active) e.currentTarget.style.background = 'var(--bg-2)' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = active ? 'var(--accent-light)' : 'transparent' }}
+                      <div
+                        key={key}
+                        onClick={() => { if (!disabled) toggleCategory(key) }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 14px',
+                          cursor: disabled ? 'not-allowed' : 'pointer',
+                          background: active ? 'var(--accent-light)' : 'transparent',
+                          borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
+                          opacity: disabled ? 0.4 : 1,
+                          transition: 'background 0.1s',
+                          userSelect: 'none',
+                        }}
+                        onMouseEnter={e => { if (!disabled && !active) e.currentTarget.style.background = 'var(--bg-2)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = active ? 'var(--accent-light)' : 'transparent' }}
                       >
-                        {/* Custom checkbox */}
-                        <div
-                          onClick={(e) => { e.preventDefault(); if (!disabled) toggleCategory(key) }}
-                          style={{
-                            width: 18, height: 18, borderRadius: 5, flexShrink: 0,
-                            border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                            background: active ? 'var(--accent)' : 'transparent',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.12s',
-                          }}
-                        >
+                        {/* Visual checkbox */}
+                        <div style={{
+                          width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                          border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                          background: active ? 'var(--accent)' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.12s',
+                        }}>
                           {active && (
                             <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                              <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           )}
                         </div>
-                        <span style={{ fontSize: 15 }}>{emoji}</span>
+                        <span style={{ fontSize: 16 }}>{emoji}</span>
                         <span style={{
                           fontFamily: 'DM Sans, sans-serif', fontSize: 14,
                           color: active ? 'var(--accent)' : 'var(--text)',
                           fontWeight: active ? 600 : 400,
-                          flex: 1,
                         }}>
                           {t[`cat_${key}`]}
                         </span>
-                        {active && (
-                          <span style={{ fontSize: 11, color: 'var(--accent)', opacity: 0.7 }}>✓</span>
-                        )}
-                      </label>
+                      </div>
                     )
                   })}
                 </div>
