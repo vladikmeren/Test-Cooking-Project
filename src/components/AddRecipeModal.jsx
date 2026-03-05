@@ -3,8 +3,9 @@ import { X, Link2, PenLine, AlertCircle } from 'lucide-react'
 import { CATEGORIES } from '../i18n.js'
 import { detectPlatform, PLATFORM_META, extractRecipeFromUrl, getYouTubeThumbnail } from '../lib/api.js'
 
-export default function AddRecipeModal({ t, lang, onSave, onClose }) {
-  const [tab, setTab]       = useState('link') // 'link' | 'manual'
+export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, initialData }) {
+  const isEdit = Boolean(initialData)
+  const [tab, setTab]       = useState(isEdit ? 'manual' : 'link')
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState('')
   const [statusMsg, setStatusMsg] = useState('')
@@ -14,13 +15,34 @@ export default function AddRecipeModal({ t, lang, onSave, onClose }) {
   const [urlName, setUrlName] = useState('')
 
   // Manual tab + prefilled after extraction
-  const [form, setForm] = useState({
-    title: '', title_en: '',
-    description: '', description_en: '',
-    source_url: '', thumbnail: '',
-    time_minutes: '', servings: '', difficulty: 'easy', category: '',
-    ingredients: '', steps: '',
-    platform: 'website', source_type: 'website', tags: '',
+  const [form, setForm] = useState(() => {
+    if (initialData) {
+      return {
+        title:          initialData.title || '',
+        title_en:       initialData.title_en || '',
+        description:    initialData.description || '',
+        description_en: initialData.description_en || '',
+        source_url:     initialData.source_url || '',
+        thumbnail:      initialData.thumbnail || '',
+        time_minutes:   initialData.time_minutes ? String(initialData.time_minutes) : '',
+        servings:       initialData.servings || '',
+        difficulty:     initialData.difficulty || 'easy',
+        category:       initialData.category || '',
+        ingredients:    (initialData.ingredients || []).join('\n'),
+        steps:          (initialData.steps || []).join('\n'),
+        platform:       initialData.platform || 'website',
+        source_type:    initialData.source_type || 'website',
+        tags:           (initialData.tags || []).join(', '),
+      }
+    }
+    return {
+      title: '', title_en: '',
+      description: '', description_en: '',
+      source_url: '', thumbnail: '',
+      time_minutes: '', servings: '', difficulty: 'easy', category: '',
+      ingredients: '', steps: '',
+      platform: 'website', source_type: 'website', tags: '',
+    }
   })
 
   const livePlatform = url ? detectPlatform(url) : null
@@ -81,9 +103,13 @@ export default function AddRecipeModal({ t, lang, onSave, onClose }) {
         steps:          form.steps ? form.steps.split('\n').map(s => s.trim()).filter(Boolean) : [],
         platform:       form.platform || 'website',
         source_type:    form.source_type || 'website',
-        is_manual:      tab === 'manual' && !form.source_url,
+        is_manual:      true,
       }
-      await onSave(recipe)
+      if (isEdit) {
+        await onUpdate(initialData.id, recipe)
+      } else {
+        await onSave(recipe)
+      }
       onClose()
     } catch {
       setError(t.errorSave)
@@ -98,7 +124,7 @@ export default function AddRecipeModal({ t, lang, onSave, onClose }) {
           {/* Modal header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: 22, fontWeight: 600 }}>
-              {t.addModalTitle}
+              {isEdit ? (t.editRecipe || 'Редактировать рецепт') : t.addModalTitle}
             </h2>
             <button className="btn btn-ghost" onClick={onClose} style={{ padding: 6 }}><X size={20} /></button>
           </div>
@@ -251,7 +277,7 @@ export default function AddRecipeModal({ t, lang, onSave, onClose }) {
                 disabled={loading}
                 style={{ justifyContent: 'center', padding: '13px', fontSize: 15, opacity: loading ? 0.6 : 1 }}
               >
-                {loading ? '...' : t.saveBtn}
+                {loading ? '...' : isEdit ? (t.saveChanges || 'Сохранить изменения') : t.saveBtn}
               </button>
             </>
           )}

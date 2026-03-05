@@ -54,6 +54,16 @@ export async function insertRecipe(recipe) {
   return res.json()
 }
 
+export async function updateRecipe(id, recipe) {
+  const res = await fetch(`/.netlify/functions/recipes?id=${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(recipe),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function deleteRecipeById(id) {
   const res = await fetch(`/.netlify/functions/recipes?id=${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)

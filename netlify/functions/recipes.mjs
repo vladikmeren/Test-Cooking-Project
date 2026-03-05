@@ -55,6 +55,34 @@ export default async function handler(req) {
     })
   }
 
+  // PUT — update recipe by id
+  if (req.method === 'PUT') {
+    const url = new URL(req.url)
+    const id  = url.searchParams.get('id')
+    if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 })
+    const r = await req.json()
+    const [row] = await sql`
+      UPDATE recipes SET
+        title          = ${r.title},
+        title_en       = ${r.title_en||null},
+        description    = ${r.description||null},
+        description_en = ${r.description_en||null},
+        source_url     = ${r.source_url||null},
+        thumbnail      = ${r.thumbnail||null},
+        time_minutes   = ${r.time_minutes||null},
+        difficulty     = ${r.difficulty||null},
+        servings       = ${r.servings||null},
+        category       = ${r.category||null},
+        tags           = ${r.tags||[]},
+        ingredients    = ${r.ingredients||[]},
+        steps          = ${r.steps||[]}
+      WHERE id = ${id}
+      RETURNING *`
+    return new Response(JSON.stringify(row), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   // DELETE — delete recipe by id
   if (req.method === 'DELETE') {
     const url = new URL(req.url)

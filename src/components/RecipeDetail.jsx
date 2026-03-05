@@ -1,8 +1,8 @@
-import { X, ExternalLink, Clock, Users, Trash2 } from 'lucide-react'
+import { X, ExternalLink, Clock, Users, Trash2, Pencil } from 'lucide-react'
 import { CATEGORIES } from '../i18n.js'
 import { PLATFORM_META, getDomain } from '../lib/api.js'
 
-export default function RecipeDetail({ recipe, lang, t, onClose, onDelete }) {
+export default function RecipeDetail({ recipe, lang, t, onClose, onDelete, onEdit }) {
   if (!recipe) return null
 
   const platform = recipe.platform || 'website'
@@ -119,8 +119,17 @@ export default function RecipeDetail({ recipe, lang, t, onClose, onDelete }) {
             </div>
           )}
 
-          {/* Delete */}
-          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)', textAlign: 'right' }}>
+          {/* Actions */}
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {recipe.is_manual && onEdit ? (
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: 13, gap: 6 }}
+                onClick={() => onEdit(recipe)}
+              >
+                <Pencil size={14} /> {t.editRecipe || 'Редактировать'}
+              </button>
+            ) : <span />}
             <button
               className="btn btn-ghost"
               style={{ color: '#c83c1e', fontSize: 13 }}

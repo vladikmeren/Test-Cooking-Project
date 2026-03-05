@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import './index.css'
 import { translations } from './i18n.js'
-import { fetchRecipes, insertRecipe, deleteRecipeById } from './lib/api.js'
+import { fetchRecipes, insertRecipe, updateRecipe, deleteRecipeById } from './lib/api.js'
 import Header from './components/Header.jsx'
 import SearchBar from './components/SearchBar.jsx'
 import CategoryGrid from './components/CategoryGrid.jsx'
@@ -22,6 +22,7 @@ export default function App() {
   const [category, setCategory]       = useState(null)
   const [selected, setSelected]       = useState(null)
   const [showAdd, setShowAdd]         = useState(false)
+  const [editRecipe, setEditRecipe]   = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
 
   useEffect(() => {
@@ -51,6 +52,12 @@ export default function App() {
   async function handleSave(recipe) {
     const saved = await insertRecipe(recipe)
     setRecipes(prev => [saved, ...prev])
+  }
+
+  async function handleUpdate(id, recipe) {
+    const updated = await updateRecipe(id, recipe)
+    setRecipes(prev => prev.map(r => r.id === id ? updated : r))
+    setSelected(updated)
   }
 
   async function handleDelete(id) {
@@ -143,6 +150,15 @@ export default function App() {
         <AddRecipeModal t={t} lang={lang} onSave={handleSave} onClose={() => setShowAdd(false)} />
       )}
 
+      {editRecipe && (
+        <AddRecipeModal
+          t={t} lang={lang}
+          initialData={editRecipe}
+          onUpdate={handleUpdate}
+          onClose={() => setEditRecipe(null)}
+        />
+      )}
+
       {selected && (
         <RecipeDetail
           recipe={selected}
@@ -150,6 +166,7 @@ export default function App() {
           t={t}
           onClose={() => { setSelected(null); setDeleteConfirm(null) }}
           onDelete={handleDelete}
+          onEdit={(recipe) => { setSelected(null); setEditRecipe(recipe) }}
         />
       )}
     </>
