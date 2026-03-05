@@ -1,14 +1,13 @@
-// ─── Platform detection ────────────────────────────────────────────────────
 export function detectPlatform(url) {
   const u = (url || '').toLowerCase()
-  if (/youtube\.com|youtu\.be/.test(u))              return 'youtube'
-  if (/instagram\.com\/(reel|p)\//.test(u))          return 'instagram_reel'
-  if (/instagram\.com/.test(u))                      return 'instagram'
-  if (/threads\.net/.test(u))                        return 'threads'
-  if (/tiktok\.com/.test(u))                         return 'tiktok'
-  if (/pinterest\.com/.test(u))                      return 'pinterest'
-  if (/facebook\.com/.test(u))                       return 'facebook'
-  if (/twitter\.com|x\.com/.test(u))                 return 'twitter'
+  if (/youtube\.com|youtu\.be/.test(u))             return 'youtube'
+  if (/instagram\.com\/(reel|p)\//.test(u))         return 'instagram_reel'
+  if (/instagram\.com/.test(u))                     return 'instagram'
+  if (/threads\.net/.test(u))                       return 'threads'
+  if (/tiktok\.com/.test(u))                        return 'tiktok'
+  if (/pinterest\.com/.test(u))                     return 'pinterest'
+  if (/facebook\.com/.test(u))                      return 'facebook'
+  if (/twitter\.com|x\.com/.test(u))                return 'twitter'
   return 'website'
 }
 
@@ -34,11 +33,11 @@ export function getDomain(url) {
   catch { return url }
 }
 
-// ─── DB calls via Netlify Functions ───────────────────────────────────────
-export async function fetchRecipes({ category, search } = {}) {
+// ─── DB calls ─────────────────────────────────────────────────────────────
+export async function fetchRecipes({ categories, search } = {}) {
   const params = new URLSearchParams()
-  if (category) params.set('category', category)
-  if (search)   params.set('search', search)
+  if (categories && categories.size > 0) params.set('categories', [...categories].join(','))
+  if (search) params.set('search', search)
   const res = await fetch(`/.netlify/functions/recipes?${params}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
@@ -69,7 +68,17 @@ export async function deleteRecipeById(id) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
 }
 
-// ─── AI extraction via Netlify Function ───────────────────────────────────
+export async function uploadImage(file) {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch('/.netlify/functions/upload-image', { method: 'POST', body: fd })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${res.status}`)
+  }
+  return res.json() // { url }
+}
+
 export async function extractRecipeFromUrl(url, customName = '') {
   const res = await fetch('/.netlify/functions/extract-recipe', {
     method: 'POST',

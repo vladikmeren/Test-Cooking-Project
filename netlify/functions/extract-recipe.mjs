@@ -1,6 +1,3 @@
-// netlify/functions/extract-recipe.mjs
-// Server-side Anthropic call — API key never reaches the browser
-
 function detectPlatform(url) {
   const u = (url || '').toLowerCase()
   if (/youtube\.com|youtu\.be/.test(u))         return 'youtube'
@@ -12,12 +9,37 @@ function detectPlatform(url) {
   return 'website'
 }
 
-const SOCIAL = new Set(['instagram_reel','instagram','threads','tiktok','pinterest'])
-const CATEGORIES = ['chicken','minced','potato','sides','pasta','salmon','seafood','vegetables','salads','breakfast','dinner','desserts']
+// Platforms where we shouldn't even try AI extraction — just return a blank draft
+const BLANK_DRAFT_PLATFORMS = new Set(['instagram_reel', 'instagram', 'tiktok', 'threads'])
+
+const CATEGORIES = ['chicken','minced','potato','sides','pasta','salmon','seafood',
+  'vegetables','salads','breakfast','lunch','dinner','desserts','soup','appetizers',
+  'marinade','smoothie','fresh','alcohol']
+
+function blankDraft(url, customName, platform) {
+  return {
+    title:          customName || '',
+    title_en:       '',
+    description:    '',
+    description_en: '',
+    source_url:     url,
+    thumbnail:      null,
+    time_minutes:   null,
+    difficulty:     'easy',
+    servings:       '',
+    categories:     [],
+    tags:           [],
+    ingredients:    [],
+    steps:          [],
+    source_type:    'video',
+    platform,
+    _is_draft:      true,
+  }
+}
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
+    return new Response(JSON.stringify({ error: 'POST only' }), { status: 405 })
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -32,31 +54,46 @@ export default async function handler(req) {
   const { url, customName = '' } = body
   if (!url) return new Response(JSON.stringify({ error: 'url required' }), { status: 400 })
 
-  const platform   = detectPlatform(url)
-  const needsSearch = SOCIAL.has(platform)
-  const isVideo    = ['youtube','instagram_reel','tiktok'].includes(platform)
+  const platform = detectPlatform(url)
 
-  const systemPrompt = `You are a recipe extraction assistant. Given a URL, extract all available recipe information.
-${needsSearch ? 'This is a social media link — use web_search to find the recipe content.' : 'Use web_search to get recipe details from the page.'}
+  // For social video platforms — return blank draft immediately, no AI call needed
+  if (BLANK_DRAFT_PLATFORMS.has(platform)) {
+    return new Response(JSON.stringify(blankDraft(url, customName, platform)), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    })
+  }
 
-Valid categories: ${CATEGORIES.join(', ')}
+  const isVideo = platform === 'youtube'
 
-Respond ONLY with a valid JSON object (no markdown, no code fences, no extra text):
+  const systemPrompt = `You are a recipe extraction assistant. Extract recipe information from the given URL.
+Use the web_search tool to fetch the page content and find the recipe.
+
+For YouTube videos: search for the video title + "рецепт" or "recipe", also check the video description for ingredients and steps.
+
+Valid categories (can pick multiple): ${CATEGORIES.join(', ')}
+
+Respond ONLY with a valid JSON object (no markdown, no backticks):
 {
   "title": "Recipe name in Russian",
   "title_en": "Recipe name in English",
-  "description": "2 appetizing sentences describing the dish in Russian",
+  "description": "2 appetizing sentences in Russian",
   "description_en": "2 appetizing sentences in English",
   "time_minutes": 30,
   "difficulty": "easy",
   "servings": "4",
-  "category": "pasta",
+  "categories": ["pasta", "dinner"],
   "tags": ["tag1","tag2"],
   "ingredients": ["200g pasta","2 eggs"],
   "steps": ["Boil water","Cook pasta"],
+  "calories": null,
+  "protein": null,
+  "fat": null,
+  "carbs": null,
   "source_type": "${isVideo ? 'video' : 'website'}",
   "platform": "${platform}"
-}`
+}
+
+If you cannot find recipe details, still return valid JSON with whatever you found — leave arrays empty if needed.`
 
   const userMsg = `URL: ${url}${customName ? `\nRecipe name hint: "${customName}"` : ''}`
 
@@ -81,33 +118,46 @@ Respond ONLY with a valid JSON object (no markdown, no code fences, no extra tex
     const rawText = await resp.text()
 
     if (!resp.ok) {
-      console.error('Anthropic API error:', resp.status, rawText)
-      throw new Error(`Anthropic error ${resp.status}: ${rawText.slice(0, 200)}`)
+      console.error('Anthropic error:', resp.status, rawText.slice(0, 300))
+      // Return blank draft on API error rather than failing
+      return new Response(JSON.stringify(blankDraft(url, customName, platform)), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     const data = JSON.parse(rawText)
-
-    // Find the last text block (after tool use)
     const textBlocks = (data.content || []).filter(b => b.type === 'text')
+
     if (!textBlocks.length) {
-      console.error('No text blocks in response:', JSON.stringify(data.content))
-      throw new Error('AI returned no text response')
+      return new Response(JSON.stringify(blankDraft(url, customName, platform)), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     const raw = textBlocks[textBlocks.length - 1].text
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
+
     if (!jsonMatch) {
-      console.error('No JSON found in:', raw.slice(0, 300))
-      throw new Error('AI did not return JSON')
+      return new Response(JSON.stringify(blankDraft(url, customName, platform)), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     const recipe = JSON.parse(jsonMatch[0])
+    // Ensure categories is array
+    if (!Array.isArray(recipe.categories)) {
+      recipe.categories = recipe.category ? [recipe.category] : []
+      delete recipe.category
+    }
+
     return new Response(JSON.stringify(recipe), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      status: 200, headers: { 'Content-Type': 'application/json' }
     })
   } catch (e) {
     console.error('extract-recipe error:', e.message)
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 })
+    // Always return a blank draft — never a hard error
+    return new Response(JSON.stringify(blankDraft(url, customName, platform)), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    })
   }
 }
