@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import './index.css'
 import { translations } from './i18n.js'
-import { fetchRecipes, insertRecipe, deleteRecipeById } from './lib/supabase.js'
+import { fetchRecipes, insertRecipe, deleteRecipeById } from './lib/api.js'
 import Header from './components/Header.jsx'
 import SearchBar from './components/SearchBar.jsx'
 import CategoryGrid from './components/CategoryGrid.jsx'
@@ -10,34 +10,27 @@ import RecipeDetail from './components/RecipeDetail.jsx'
 import AddRecipeModal from './components/AddRecipeModal.jsx'
 
 export default function App() {
-  // Theme & language
   const [theme, setTheme] = useState(() => localStorage.getItem('tb-theme') || 'light')
   const [lang, setLang]   = useState(() => localStorage.getItem('tb-lang')  || 'ru')
   const t = translations[lang]
 
-  // Data
-  const [recipes, setRecipes]   = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [recipes, setRecipes]     = useState([])
+  const [loading, setLoading]     = useState(true)
   const [dataError, setDataError] = useState('')
 
-  // UI state
-  const [search, setSearch]         = useState('')
-  const [category, setCategory]     = useState(null)
-  const [selected, setSelected]     = useState(null)   // recipe detail
-  const [showAdd, setShowAdd]       = useState(false)
+  const [search, setSearch]           = useState('')
+  const [category, setCategory]       = useState(null)
+  const [selected, setSelected]       = useState(null)
+  const [showAdd, setShowAdd]         = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
 
-  // Apply theme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('tb-theme', theme)
   }, [theme])
 
-  useEffect(() => {
-    localStorage.setItem('tb-lang', lang)
-  }, [lang])
+  useEffect(() => { localStorage.setItem('tb-lang', lang) }, [lang])
 
-  // Load recipes
   const loadRecipes = useCallback(async () => {
     setLoading(true); setDataError('')
     try {
@@ -82,14 +75,11 @@ export default function App() {
       />
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 80px' }}>
-
-        {/* Search + filter bar */}
         <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <SearchBar value={search} onChange={setSearch} t={t} />
           <CategoryGrid active={category} onSelect={setCategory} t={t} />
         </div>
 
-        {/* Error */}
         {dataError && (
           <div style={{
             padding: '14px 18px', marginBottom: 20,
@@ -98,7 +88,6 @@ export default function App() {
           }}>{dataError}</div>
         )}
 
-        {/* Loading skeletons */}
         {loading && (
           <div className="recipe-grid">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -114,12 +103,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Empty state */}
         {!loading && recipes.length === 0 && (
-          <div style={{
-            textAlign: 'center', padding: '80px 20px',
-            color: 'var(--text-3)',
-          }}>
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-3)' }}>
             <div style={{ fontSize: 72, marginBottom: 16 }}>🍽️</div>
             <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 22, color: 'var(--text-2)', marginBottom: 8 }}>
               {search || category ? t.noResults : t.noRecipes}
@@ -139,7 +124,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Grid */}
         {!loading && recipes.length > 0 && (
           <div className="recipe-grid">
             {recipes.map(recipe => (
@@ -155,7 +139,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Modals */}
       {showAdd && (
         <AddRecipeModal t={t} lang={lang} onSave={handleSave} onClose={() => setShowAdd(false)} />
       )}

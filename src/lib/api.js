@@ -34,7 +34,32 @@ export function getDomain(url) {
   catch { return url }
 }
 
-// ─── AI extraction via Netlify Function ────────────────────────────────────
+// ─── DB calls via Netlify Functions ───────────────────────────────────────
+export async function fetchRecipes({ category, search } = {}) {
+  const params = new URLSearchParams()
+  if (category) params.set('category', category)
+  if (search)   params.set('search', search)
+  const res = await fetch(`/.netlify/functions/recipes?${params}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function insertRecipe(recipe) {
+  const res = await fetch('/.netlify/functions/recipes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(recipe),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function deleteRecipeById(id) {
+  const res = await fetch(`/.netlify/functions/recipes?id=${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// ─── AI extraction via Netlify Function ───────────────────────────────────
 export async function extractRecipeFromUrl(url, customName = '') {
   const res = await fetch('/.netlify/functions/extract-recipe', {
     method: 'POST',
