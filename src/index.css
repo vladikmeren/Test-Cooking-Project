@@ -1,0 +1,153 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Light theme ── */
+:root {
+  --bg:           #faf8f4;
+  --bg-2:         #f3efe8;
+  --bg-card:      #ffffff;
+  --border:       #e8e0d4;
+  --border-2:     #d4c9b8;
+  --text:         #1a1714;
+  --text-2:       #5a5046;
+  --text-3:       #9a8e80;
+  --accent:       #5a7a3a;
+  --accent-2:     #c8622a;
+  --accent-light: #edf3e6;
+  --accent-2-light: #fdeee6;
+  --shadow:       0 2px 12px rgba(0,0,0,0.06);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.10);
+  --radius:       14px;
+  --radius-sm:    8px;
+}
+
+/* ── Dark theme ── */
+[data-theme="dark"] {
+  --bg:           #121110;
+  --bg-2:         #1c1a18;
+  --bg-card:      #221f1c;
+  --border:       #2e2a25;
+  --border-2:     #3d3830;
+  --text:         #f0ebe2;
+  --text-2:       #a09080;
+  --text-3:       #5a5048;
+  --accent:       #7aaa50;
+  --accent-2:     #e87840;
+  --accent-light: #1a2614;
+  --accent-2-light: #2a1a10;
+  --shadow:       0 2px 12px rgba(0,0,0,0.3);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.4);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-2); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+/* ── Typography ── */
+h1, h2, h3 { font-family: 'Playfair Display', serif; line-height: 1.2; }
+
+/* ── Utility ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  border: none; cursor: pointer; transition: all 0.18s; text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--accent); color: #fff;
+}
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-secondary {
+  background: var(--bg-2); color: var(--text-2); border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--border-2); color: var(--text); }
+.btn-ghost {
+  background: transparent; color: var(--text-3); padding: 8px 12px;
+}
+.btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+
+/* ── Input ── */
+.input {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.18s, background 0.18s;
+}
+.input:focus { border-color: var(--accent); background: var(--bg-card); }
+.input::placeholder { color: var(--text-3); }
+
+textarea.input { resize: vertical; min-height: 90px; }
+
+/* ── Modal overlay ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  width: 100%; max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── Card grid ── */
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* ── Tag pill ── */
+.tag {
+  display: inline-flex; align-items: center;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 11px;
+  font-size: 12px; color: var(--text-2); white-space: nowrap;
+}
+.tag.accent { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+/* ── Skeleton loader ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-2) 25%, var(--border) 50%, var(--bg-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .recipe-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+@media (max-width: 420px) {
+  .recipe-grid { grid-template-columns: 1fr; }
+}
