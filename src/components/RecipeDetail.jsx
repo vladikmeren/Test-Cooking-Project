@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { X, ExternalLink, Clock, Users, Trash2, Pencil, Camera } from 'lucide-react'
 import { CATEGORIES } from '../i18n.js'
-import { PLATFORM_META, getDomain, uploadImage } from '../lib/api.js'
+import { PLATFORM_META, getDomain, uploadImage, updateRecipe } from '../lib/api.js'
 
 export default function RecipeDetail({ recipe, lang, t, onClose, onDelete, onEdit }) {
   const [changingPhoto, setChangingPhoto] = useState(false)
@@ -46,31 +46,41 @@ export default function RecipeDetail({ recipe, lang, t, onClose, onDelete, onEdi
             }}>🍽️</div>
           )}
 
-          {/* Change photo button */}
-          {recipe.is_manual && (
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={changingPhoto}
-              style={{
-                position: 'absolute', bottom: 10, right: 10,
-                background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: 8,
-                color: 'white', padding: '6px 10px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
-              }}>
-              <Camera size={13} /> {changingPhoto ? '...' : '📷'}
-            </button>
-          )}
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+          {/* Change photo button — shown for all recipes */}
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={changingPhoto}
+            style={{
+              position: 'absolute', bottom: 10, right: 10,
+              background: 'rgba(0,0,0,0.65)', border: 'none', borderRadius: 8,
+              color: 'white', padding: '7px 11px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 5, fontSize: 12,
+              backdropFilter: 'blur(4px)',
+            }}>
+            <Camera size={13} /> {changingPhoto ? 'Сохраняю...' : 'Сменить фото'}
+          </button>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic"
+            style={{ display: 'none' }}
             onChange={async (e) => {
               const file = e.target.files?.[0]; if (!file) return
               setChangingPhoto(true)
               try {
                 const { url } = await uploadImage(file)
-                // Update recipe inline - parent will need to reload
+                // Save directly to DB, update parent list too
+                await updateRecipe(recipe.id, { ...recipe, thumbnail: url,
+                  categories: recipe.categories || [],
+                  tags: recipe.tags || [],
+                  ingredients: recipe.ingredients || [],
+                  steps: recipe.steps || [],
+                })
                 recipe.thumbnail = url
-                // Force re-render by triggering onEdit with updated data
+                // Trigger re-render
                 if (onEdit) onEdit({ ...recipe, thumbnail: url })
-              } catch (err) { console.error(err) }
+              } catch (err) {
+                console.error('photo change error:', err)
+                alert('Ошибка загрузки: ' + err.message)
+              }
               setChangingPhoto(false)
             }} />
         </div>

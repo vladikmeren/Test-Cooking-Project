@@ -69,14 +69,11 @@ export async function deleteRecipeById(id) {
 }
 
 export async function uploadImage(file) {
-  const fd = new FormData()
-  fd.append('file', file)
-  const res = await fetch('/.netlify/functions/upload-image', { method: 'POST', body: fd })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error || `HTTP ${res.status}`)
-  }
-  return res.json() // { url }
+  // Compress client-side → base64 data URL stored directly in DB
+  // No Netlify Blobs needed — works on all plans, no URL issues
+  const { compressImage } = await import('./imageUtils.js')
+  const dataUrl = await compressImage(file)
+  return { url: dataUrl }
 }
 
 export async function extractRecipeFromUrl(url, customName = '') {

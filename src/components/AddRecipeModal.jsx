@@ -68,7 +68,13 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
   async function handleFileUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
+    // Client-side size guard before compression (raw file > 20MB is too slow)
+    if (file.size > 20 * 1024 * 1024) {
+      setError('Файл слишком большой (макс. 20MB)')
+      return
+    }
     setUploading(true)
+    setError('')
     try {
       const { url: imgUrl } = await uploadImage(file)
       setF('thumbnail', imgUrl)
@@ -237,7 +243,7 @@ export default function AddRecipeModal({ t, lang, onSave, onUpdate, onClose, ini
               <div>
                 <label style={L}>{t.photoLabel}</label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                  <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+                  <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/gif" style={{ display: 'none' }} onChange={handleFileUpload} />
                   <button type="button" className="btn btn-secondary" onClick={() => fileRef.current?.click()}
                     disabled={uploading} style={{ fontSize: 13, gap: 6, flexShrink: 0 }}>
                     <Upload size={14} /> {uploading ? 'Загружаю...' : t.photoUpload}
