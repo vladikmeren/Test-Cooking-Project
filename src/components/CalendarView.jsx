@@ -142,41 +142,49 @@ function DayCard({ day, plans, recipeById, lang, onAddClick, onRemove }) {
 
           return (
             <div key={meal.key} style={{
-              padding: '7px 10px',
+              padding: hasDishes ? '6px 10px 8px' : '5px 10px',
               borderBottom: '1px solid var(--border)',
-              background: hasDishes ? 'transparent' : 'transparent',
+              background: hasDishes ? `${meal.color}08` : 'transparent',
             }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: hasDishes ? 5 : 0 }}>
+              {/* Meal label + add button */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: hasDishes ? 6 : 0 }}>
                 <span style={{ fontSize:10, fontWeight:700, color:meal.color, textTransform:'uppercase', letterSpacing:'0.06em', display:'flex', alignItems:'center', gap:3 }}>
                   <span style={{fontSize:12}}>{meal.emoji}</span>{meal.label}
+                  {hasDishes && <span style={{fontSize:9,fontWeight:600,background:meal.color,color:'#fff',borderRadius:99,padding:'1px 5px',marginLeft:3}}>{ids.length}</span>}
                 </span>
                 <button type="button"
                   onClick={() => onAddClick(dateStr, meal.key)}
-                  style={{ width:20, height:20, borderRadius:6, background:'var(--bg-2)', border:'1px solid var(--border)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.12s' }}
+                  style={{ width:20, height:20, borderRadius:6, background: hasDishes ? meal.color+'22' : 'var(--bg-2)', border:`1px solid ${hasDishes ? meal.color+'44' : 'var(--border)'}`, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.12s' }}
                   onMouseEnter={e=>{e.currentTarget.style.background='var(--accent-light)';e.currentTarget.style.borderColor='var(--accent)'}}
-                  onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-2)';e.currentTarget.style.borderColor='var(--border)'}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=hasDishes?meal.color+'22':'var(--bg-2)';e.currentTarget.style.borderColor=hasDishes?meal.color+'44':'var(--border)'}}
                 >
-                  <Plus size={11} color="var(--text-3)"/>
+                  <Plus size={11} color={hasDishes ? meal.color : 'var(--text-3)'}/>
                 </button>
               </div>
 
+              {/* Recipe cards — always visible */}
               {ids.map(id => {
                 const r = recipeById(id)
                 if (!r) return null
                 const name = (lang==='en'&&r.title_en) ? r.title_en : r.title
                 return (
-                  <div key={id} style={{ display:'flex', alignItems:'center', gap:5, marginBottom:3, background:'var(--bg-2)', borderRadius:7, padding:'4px 6px', border:'1px solid var(--border)' }}>
+                  <div key={id} style={{
+                    display:'flex', alignItems:'center', gap:6, marginBottom:4,
+                    background:'var(--bg-card)', borderRadius:8, padding:'5px 7px',
+                    border:`1px solid ${meal.color}33`,
+                    boxShadow:`0 1px 3px ${meal.color}15`,
+                  }}>
                     {r.thumbnail
-                      ? <img src={r.thumbnail} alt="" style={{width:20,height:20,borderRadius:4,objectFit:'cover',flexShrink:0}}/>
-                      : <span style={{fontSize:14,flexShrink:0}}>🍽</span>
+                      ? <img src={r.thumbnail} alt="" style={{width:26,height:26,borderRadius:5,objectFit:'cover',flexShrink:0,border:`1px solid ${meal.color}22`}}/>
+                      : <div style={{width:26,height:26,borderRadius:5,background:meal.color+'18',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:14}}>🍽</div>
                     }
-                    <span style={{ flex:1, fontSize:11, fontWeight:500, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={name}>{name}</span>
+                    <span style={{ flex:1, fontSize:12, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', lineHeight:1.2 }} title={name}>{name}</span>
                     <button type="button" onClick={() => onRemove(dateStr, meal.key, id)}
-                      style={{ background:'none', border:'none', cursor:'pointer', padding:1, color:'var(--text-3)', display:'flex', flexShrink:0, opacity:0.6 }}
+                      style={{ background:'none', border:'none', cursor:'pointer', padding:2, color:'var(--text-3)', display:'flex', flexShrink:0, opacity:0, transition:'opacity 0.15s' }}
                       onMouseEnter={e=>e.currentTarget.style.opacity='1'}
-                      onMouseLeave={e=>e.currentTarget.style.opacity='0.6'}
+                      onMouseLeave={e=>e.currentTarget.style.opacity='0'}
                     >
-                      <X size={10}/>
+                      <X size={11}/>
                     </button>
                   </div>
                 )
@@ -210,7 +218,11 @@ export default function CalendarView({ recipes, lang }) {
     try {
       const rows = await fetchMealPlans(fromStr, toStr)
       const map  = {}
-      for (const row of rows) map[`${row.plan_date}|${row.meal_type}`] = row
+      for (const row of rows) {
+        // DB returns "2026-03-11T00:00:00.000Z" — normalize to "2026-03-11"
+        const dateKey = (row.plan_date || '').split('T')[0]
+        map[`${dateKey}|${row.meal_type}`] = { ...row, plan_date: dateKey }
+      }
       setPlans(map)
     } catch(e) { console.error('Load plans error:', e) }
     setLoading(false)
@@ -226,7 +238,8 @@ export default function CalendarView({ recipes, lang }) {
     setSaving(true)
     try {
       const updated = await upsertMealPlan(date, meal, newIds, slot.custom_note||'')
-      setPlans(p => ({ ...p, [`${date}|${meal}`]: updated }))
+      const dateKey = (updated.plan_date||date).split('T')[0]
+      setPlans(p => ({ ...p, [`${date}|${meal}`]: { ...updated, plan_date: dateKey } }))
     } catch(e) { console.error('Add failed:', e); alert('Ошибка: ' + e.message) }
     setSaving(false)
     setPicker(null)
