@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Copy, Share2, Plus, X, Check, ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react'
+import { Copy, Share2, Plus, X, Check, ChevronDown, ChevronUp, ShoppingCart, Trash2 } from 'lucide-react'
 import { fetchMealPlans, aggregateIngredients, SHOP_CATEGORIES } from '../lib/api.js'
 
 const PRESETS = [
@@ -73,6 +73,25 @@ export default function ShoppingList({ recipes, lang }) {
 
   function removeCustom(id) {
     setCustom(c => c.filter(i => i.id !== id))
+  }
+
+  function clearChecked() {
+    setChecked({})
+    setCustom(c => c.map(i => ({ ...i, checked: false })))
+  }
+
+  function clearAll() {
+    if (!window.confirm('Очистить весь список? Снимет все галочки и удалит добавленные вручную.')) return
+    setChecked({})
+    setCustom([])
+  }
+
+  function clearCategory(catKey, items) {
+    setChecked(c => {
+      const next = { ...c }
+      items.forEach(item => { delete next[`${item.name}|${item.unit}`] })
+      return next
+    })
   }
 
   // Build text for copy/share
@@ -214,17 +233,36 @@ export default function ShoppingList({ recipes, lang }) {
         <>
           {/* Action bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: 14, color: 'var(--text-3)' }}>
+            <div style={{ fontSize: 14, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 10 }}>
               {checkedCount > 0 && <span style={{ color: 'var(--accent)', fontWeight: 600 }}>✓ {checkedCount}</span>}
               {checkedCount > 0 && ' / '}{totalItems} позиций
+              {checkedCount > 0 && (
+                <button type="button"
+                  onClick={clearChecked}
+                  title="Снять все галочки"
+                  style={{ marginLeft: 4, padding: '3px 9px', fontSize: 11, fontWeight: 600, background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-3)' }}
+                >
+                  <X size={11}/> Снять галочки
+                </button>
+              )}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={handleCopy}>
                 {copied ? <Check size={15} /> : <Copy size={15} />}
                 {copied ? 'Скопировано!' : 'Копировать'}
               </button>
               <button type="button" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={handleShare}>
                 <Share2 size={15} /> Поделиться
+              </button>
+              <button type="button"
+                onClick={clearAll}
+                style={{ padding: '8px 14px', fontSize: 13, fontWeight: 600, background: 'transparent', border: '1px solid #ef4444', borderRadius: 8, cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              >
+                <Trash2 size={14}/> Очистить всё
               </button>
             </div>
           </div>
@@ -238,20 +276,33 @@ export default function ShoppingList({ recipes, lang }) {
               const doneInCat   = items.filter(i => checked[`${i.name}|${i.unit}`]).length
               return (
                 <div key={cat.key} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', boxShadow: 'var(--shadow-xs)' }}>
-                  <button
-                    type="button"
-                    onClick={() => toggleCollapse(cat.key)}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 16 }}>{cat.label.split(' ')[0]}</span>
-                      <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{cat.label.split(' ').slice(1).join(' ')}</span>
-                      <span style={{ fontSize: 12, color: 'var(--text-3)', background: 'var(--bg-2)', borderRadius: 99, padding: '1px 8px' }}>
-                        {doneInCat > 0 ? `${doneInCat}/` : ''}{items.length}
-                      </span>
-                    </div>
-                    {isCollapsed ? <ChevronDown size={16} color="var(--text-3)" /> : <ChevronUp size={16} color="var(--text-3)" />}
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCollapse(cat.key)}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 16 }}>{cat.label.split(' ')[0]}</span>
+                        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{cat.label.split(' ').slice(1).join(' ')}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-3)', background: 'var(--bg-2)', borderRadius: 99, padding: '1px 8px' }}>
+                          {doneInCat > 0 ? `${doneInCat}/` : ''}{items.length}
+                        </span>
+                      </div>
+                      {isCollapsed ? <ChevronDown size={16} color="var(--text-3)" /> : <ChevronUp size={16} color="var(--text-3)" />}
+                    </button>
+                    {doneInCat > 0 && (
+                      <button type="button"
+                        onClick={e => { e.stopPropagation(); clearCategory(cat.key, items) }}
+                        title="Снять галочки в этой категории"
+                        style={{ padding: '6px 12px', marginRight: 10, fontSize: 11, fontWeight: 600, background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-3)' }}
+                      >
+                        <X size={10}/> Снять
+                      </button>
+                    )}
+                  </div>
                   {!isCollapsed && items.map(item => {
                     const key   = `${item.name}|${item.unit}`
                     const done  = !!checked[key]
