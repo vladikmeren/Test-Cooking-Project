@@ -98,6 +98,10 @@ export const translations = {
     cat_fresh: 'Фреш',
     cat_marinade: 'Маринад',
     cat_appetizers: 'Закуски',
+    cat_beef:       'Говядина',
+    cat_pork:       'Свинина',
+    cat_turkey:     'Индейка',
+    cat_rabbit:     'Кролик',
   },
 
   en: {
@@ -199,6 +203,10 @@ export const translations = {
     cat_fresh: 'Fresh Juice',
     cat_marinade: 'Marinade',
     cat_appetizers: 'Appetizers',
+    cat_beef:       'Beef',
+    cat_pork:       'Pork',
+    cat_turkey:     'Turkey',
+    cat_rabbit:     'Rabbit',
   }
 }
 
@@ -222,4 +230,8 @@ export const CATEGORIES = [
   { key: 'smoothie',   emoji: '🥤' },
   { key: 'fresh',      emoji: '🍊' },
   { key: 'alcohol',    emoji: '🍷' },
+  { key: 'beef',       emoji: '🥩' },
+  { key: 'pork',       emoji: '🐷' },
+  { key: 'turkey',     emoji: '🦃' },
+  { key: 'rabbit',     emoji: '🐰' },
 ]
