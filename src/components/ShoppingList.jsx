@@ -28,6 +28,7 @@ export default function ShoppingList({ recipes, lang }) {
   const [newItem,    setNewItem]  = useState('')
   const [loading,    setLoading]  = useState(false)
   const [copied,     setCopied]   = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
   const [planInfo,   setPlanInfo] = useState({ meals: 0, recipes: 0 })
 
   const endDate = toDateStr(addDays(new Date(startDate), days - 1))
@@ -81,9 +82,11 @@ export default function ShoppingList({ recipes, lang }) {
   }
 
   function clearAll() {
-    if (!window.confirm('Очистить весь список? Снимет все галочки и удалит добавленные вручную.')) return
     setChecked({})
     setCustom([])
+    setGrouped({})
+    setPlanInfo({ meals: 0, recipes: 0 })
+    setConfirmClear(false)
   }
 
   function clearCategory(catKey, items) {
@@ -256,14 +259,32 @@ export default function ShoppingList({ recipes, lang }) {
               <button type="button" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={handleShare}>
                 <Share2 size={15} /> Поделиться
               </button>
-              <button type="button"
-                onClick={clearAll}
-                style={{ padding: '8px 14px', fontSize: 13, fontWeight: 600, background: 'transparent', border: '1px solid #ef4444', borderRadius: 8, cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-              >
-                <Trash2 size={14}/> Очистить всё
-              </button>
+              {!confirmClear ? (
+                <button type="button"
+                  onClick={() => setConfirmClear(true)}
+                  style={{ padding: '8px 14px', fontSize: 13, fontWeight: 600, background: 'transparent', border: '1px solid #ef4444', borderRadius: 8, cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  <Trash2 size={14}/> Очистить всё
+                </button>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>Уверен?</span>
+                  <button type="button"
+                    onClick={clearAll}
+                    style={{ padding: '7px 12px', fontSize: 12, fontWeight: 700, background: '#ef4444', border: 'none', borderRadius: 7, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', gap: 5 }}
+                  >
+                    <Trash2 size={13}/> Да, очистить
+                  </button>
+                  <button type="button"
+                    onClick={() => setConfirmClear(false)}
+                    style={{ padding: '7px 10px', fontSize: 12, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', color: 'var(--text-2)' }}
+                  >
+                    Отмена
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
