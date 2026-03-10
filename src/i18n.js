@@ -2,6 +2,9 @@ export const translations = {
   ru: {
     appName: 'RecipeHub',
     tagline: 'Наша книга рецептов',
+  navRecipes: 'Рецепты',
+  navCalendar: 'Календарь',
+  navShopping: 'Покупки',
     searchPlaceholder: 'Поиск по названию, ингредиентам...',
     addRecipe: 'Добавить рецепт',
     allCategories: 'Все',
@@ -100,6 +103,9 @@ export const translations = {
   en: {
     appName: 'RecipeHub',
     tagline: 'Our recipe book',
+  navRecipes: 'Recipes',
+  navCalendar: 'Calendar',
+  navShopping: 'Shopping',
     searchPlaceholder: 'Search by name, ingredients...',
     addRecipe: 'Add Recipe',
     allCategories: 'All',

@@ -88,3 +88,127 @@ export async function extractRecipeFromUrl(url, customName = '') {
   }
   return res.json()
 }
+
+// ─── Meal Plan API ─────────────────────────────────────────────────────────
+export async function fetchMealPlans(from, to) {
+  const res = await fetch(`/.netlify/functions/meal-plans?from=${from}&to=${to}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function upsertMealPlan(plan_date, meal_type, recipe_ids, custom_note = '') {
+  const res = await fetch('/.netlify/functions/meal-plans', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan_date, meal_type, recipe_ids, custom_note }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function deleteMealPlan(date, meal) {
+  const res = await fetch(`/.netlify/functions/meal-plans?date=${date}&meal=${meal}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// ─── Ingredient Parser for Shopping List ──────────────────────────────────
+const UNIT_MAP = {
+  'гр': 'г', 'грамм': 'г', 'граммов': 'г', 'грамма': 'г',
+  'кг': 'кг', 'килограмм': 'кг', 'кило': 'кг',
+  'мл': 'мл', 'миллилитр': 'мл',
+  'л': 'л', 'литр': 'л', 'литра': 'л',
+  'ст.л': 'ст.л', 'стл': 'ст.л', 'столовая ложка': 'ст.л', 'ст. л': 'ст.л',
+  'ч.л': 'ч.л', 'чл': 'ч.л', 'чайная ложка': 'ч.л', 'ч. л': 'ч.л',
+  'шт': 'шт', 'штук': 'шт', 'штуки': 'шт',
+  'стакан': 'стакан', 'стакана': 'стакан',
+  'зубч': 'зубч', 'зубчик': 'зубч', 'зубчика': 'зубч',
+  'пучок': 'пучок', 'щепотка': 'щепотка', 'горсть': 'горсть',
+}
+
+function normalizeUnit(u) {
+  const clean = u.replace(/\./g, '').toLowerCase().trim()
+  return UNIT_MAP[clean] || u.toLowerCase().trim()
+}
+
+export function parseIngredient(str) {
+  const s = str.trim()
+  // "200г макарон" / "200 г макарон" / "1кг курицы" / "3 яйца" / "2 ст.л. масла"
+  const re = /^(\d+(?:[.,]\d+)?)\s*(г|гр\.?|грамм[а]?|кг|мл|л|шт\.?|ст\.?\s*л\.?|ч\.?\s*л\.?|стакан[а]?|зубч\.?|зубчик[а]?|пучок|горсть|щепотка|кусок|куска)\s*(.+)$/i
+  const m = s.match(re)
+  if (m) {
+    return {
+      qty: parseFloat(m[1].replace(',', '.')),
+      unit: normalizeUnit(m[2]),
+      name: m[3].toLowerCase().trim(),
+      raw: s,
+    }
+  }
+  // "3 яйца"
+  const m2 = s.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/)
+  if (m2) {
+    return { qty: parseFloat(m2[1].replace(',', '.')), unit: 'шт', name: m2[2].toLowerCase().trim(), raw: s }
+  }
+  return { qty: null, unit: '', name: s.toLowerCase().trim(), raw: s }
+}
+
+const CATEGORIES_SHOP = [
+  { key: 'meat',    label: '🥩 Мясо и птица',       keywords: ['курица','говядина','свинина','фарш','мясо','индейка','баранина','телятина','утка','кролик'] },
+  { key: 'fish',    label: '🐟 Рыба и морепродукты', keywords: ['лосось','рыба','тунец','креветки','кальмар','треска','форель','минтай','сельдь','горбуша','морепродукты','скумбрия'] },
+  { key: 'dairy',   label: '🥛 Молочное и яйца',     keywords: ['молоко','сметана','сыр','творог','кефир','йогурт','сливки','масло','яйц','ряженка','простокваша','пармезан','моцарелла'] },
+  { key: 'veg',     label: '🥦 Овощи',               keywords: ['помидор','огурец','лук','чеснок','морковь','картофель','перец','брокколи','цветная капуста','кабачок','баклажан','шпинат','салат','зелень','петрушка','укроп','кинза','капуста','свекла','тыква','горошек','кукуруза','грибы'] },
+  { key: 'fruit',   label: '🍎 Фрукты',              keywords: ['яблоко','банан','лимон','апельсин','груша','виноград','клубника','малина','черника','персик','абрикос','слива','манго','ананас','авокадо'] },
+  { key: 'grains',  label: '🌾 Крупы и макароны',    keywords: ['рис','гречка','овсянка','макарон','спагетти','паста','манка','пшено','перловка','булгур','кускус','хлеб','мука','крахмал','лапша','вермишель'] },
+  { key: 'oils',    label: '🫙 Масла и соусы',        keywords: ['масло','оливковое','подсолнечное','соус','уксус','майонез','кетчуп','горчица','соевый','вустер'] },
+  { key: 'spices',  label: '🧂 Специи',               keywords: ['соль','перец','паприка','куркума','карри','зира','кориандр','базилик','орегано','тимьян','розмарин','лавровый','гвоздика','корица','имбирь','специи','приправа'] },
+  { key: 'canned',  label: '🥫 Консервы и бакалея',  keywords: ['томат','консерв','тушен','горошек','кукуруза','фасоль','нут','чечевица','оливки','каперсы'] },
+  { key: 'other',   label: '🛒 Прочее',               keywords: [] },
+]
+
+export function categorizeIngredient(name) {
+  const n = name.toLowerCase()
+  for (const cat of CATEGORIES_SHOP) {
+    if (cat.keywords.some(k => n.includes(k))) return cat.key
+  }
+  return 'other'
+}
+
+export function aggregateIngredients(ingredientLists) {
+  // ingredientLists: string[][] from multiple recipes
+  const map = new Map() // key: "name|unit" → {name, unit, qty, category, raws}
+
+  for (const list of ingredientLists) {
+    for (const raw of list) {
+      if (!raw?.trim()) continue
+      const parsed = parseIngredient(raw)
+      const mapKey = `${parsed.name}|${parsed.unit}`
+
+      if (map.has(mapKey)) {
+        const existing = map.get(mapKey)
+        if (parsed.qty !== null && existing.qty !== null) {
+          existing.qty += parsed.qty
+        } else {
+          existing.raws.push(raw)
+        }
+      } else {
+        map.set(mapKey, {
+          name: parsed.name,
+          unit: parsed.unit,
+          qty: parsed.qty,
+          category: categorizeIngredient(parsed.name),
+          raws: [raw],
+          checked: false,
+        })
+      }
+    }
+  }
+
+  // Group by category
+  const result = {}
+  for (const [, item] of map) {
+    if (!result[item.category]) result[item.category] = []
+    result[item.category].push(item)
+  }
+  return result
+}
+
+export const SHOP_CATEGORIES = CATEGORIES_SHOP
