@@ -6,8 +6,8 @@ async function ensureSchema(sql) {
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       plan_date   DATE NOT NULL,
       meal_type   TEXT NOT NULL,
-      recipe_ids  UUID[] DEFAULT '{}',
-      custom_note TEXT,
+      recipe_ids  TEXT[] DEFAULT '{}',
+      custom_note TEXT DEFAULT '',
       created_at  TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(plan_date, meal_type)
     )`
@@ -15,9 +15,15 @@ async function ensureSchema(sql) {
 
 export default async function handler(req) {
   const sql = getDb()
-  await ensureSchema(sql)
+  try {
+    await ensureSchema(sql)
+  } catch(e) {
+    // Table might exist with UUID type, try migration
+    try {
+      await sql`ALTER TABLE meal_plans ALTER COLUMN recipe_ids TYPE TEXT[] USING recipe_ids::text[]`
+    } catch(_) {}
+  }
 
-  // GET /meal-plans?from=2025-01-01&to=2025-01-31
   if (req.method === 'GET') {
     const url  = new URL(req.url)
     const from = url.searchParams.get('from')
@@ -34,26 +40,33 @@ export default async function handler(req) {
     })
   }
 
-  // PUT /meal-plans — upsert a slot
   if (req.method === 'PUT') {
-    const body = await req.json()
+    let body
+    try { body = await req.json() } catch(e) {
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 })
+    }
     const { plan_date, meal_type, recipe_ids = [], custom_note = '' } = body
     if (!plan_date || !meal_type) {
       return new Response(JSON.stringify({ error: 'plan_date and meal_type required' }), { status: 400 })
     }
+
+    // Build TEXT[] literal — safe since UUIDs only contain [a-f0-9-]
+    const idsLiteral = `{${recipe_ids.filter(Boolean).join(',')}}`
+
     const [row] = await sql`
       INSERT INTO meal_plans (plan_date, meal_type, recipe_ids, custom_note)
-      VALUES (${plan_date}, ${meal_type}, ${sql.array(recipe_ids)}, ${custom_note})
+      VALUES (${plan_date}, ${meal_type}, ${idsLiteral}::text[], ${custom_note})
       ON CONFLICT (plan_date, meal_type) DO UPDATE
         SET recipe_ids  = EXCLUDED.recipe_ids,
             custom_note = EXCLUDED.custom_note
       RETURNING *`
+
     return new Response(JSON.stringify(row), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
   }
 
-  // DELETE /meal-plans?date=2025-01-01&meal=breakfast
   if (req.method === 'DELETE') {
     const url      = new URL(req.url)
     const planDate = url.searchParams.get('date')
