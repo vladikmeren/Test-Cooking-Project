@@ -6,7 +6,7 @@ async function ensureSchema(sql) {
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       plan_date   DATE NOT NULL,
       meal_type   TEXT NOT NULL,
-      recipe_ids  TEXT[] DEFAULT '{}',
+      recipe_ids  UUID[] DEFAULT '{}',
       custom_note TEXT DEFAULT '',
       created_at  TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(plan_date, meal_type)
@@ -20,7 +20,7 @@ export default async function handler(req) {
   } catch(e) {
     // Table might exist with UUID type, try migration
     try {
-      await sql`ALTER TABLE meal_plans ALTER COLUMN recipe_ids TYPE TEXT[] USING recipe_ids::text[]`
+      // column already uuid[] - no migration needed
     } catch(_) {}
   }
 
@@ -55,7 +55,7 @@ export default async function handler(req) {
 
     const [row] = await sql`
       INSERT INTO meal_plans (plan_date, meal_type, recipe_ids, custom_note)
-      VALUES (${plan_date}, ${meal_type}, ${idsLiteral}::text[], ${custom_note})
+      VALUES (${plan_date}, ${meal_type}, ${idsLiteral}::uuid[], ${custom_note})
       ON CONFLICT (plan_date, meal_type) DO UPDATE
         SET recipe_ids  = EXCLUDED.recipe_ids,
             custom_note = EXCLUDED.custom_note
